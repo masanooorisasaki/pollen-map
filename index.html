@@ -4,283 +4,308 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>花粉飛散マップ | 登山者向け花粉情報</title>
-
-  <!-- MapLibre GL -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --red:    #E60012;
-      --black:  #111111;
-      --white:  #FFFFFF;
-      --bg:     #F5F5F5;
-      --lv1:    #4CAF50; /* 少ない */
-      --lv2:    #FFC107; /* やや多い */
-      --lv3:    #FF9800; /* 多い */
-      --lv4:    #F44336; /* 非常に多い */
+      --red:   #E60012;
+      --black: #111;
+      --white: #fff;
+      --bg:    #F5F5F5;
+      --lv1:   #2e9e4f;
+      --lv2:   #f5a623;
+      --lv3:   #e8650a;
+      --lv4:   #d0021b;
+      --panel-w: 260px;
     }
-
-    html, body { height: 100%; font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; }
+    html, body { height: 100%; font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; }
 
     /* ===== ヘッダー ===== */
     header {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-      background: var(--red);
-      height: 52px;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+      background: var(--red); height: 52px;
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
     }
-    .h-logo {
-      color: #fff; font-size: 15px; font-weight: 700;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .h-logo .icon { font-size: 20px; }
-    .h-badge {
-      background: #fff; color: var(--red);
-      font-size: 11px; font-weight: 700;
-      padding: 3px 10px; border-radius: 20px;
-      white-space: nowrap;
+    .h-logo { color: #fff; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .h-right { display: flex; align-items: center; gap: 8px; }
+    .h-badge { background:#fff; color:var(--red); font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+    #panel-toggle {
+      display: none;
+      background: rgba(255,255,255,.2); border: none; color: #fff;
+      font-size: 20px; width: 36px; height: 36px; border-radius: 8px;
+      cursor: pointer; align-items: center; justify-content: center;
     }
 
     /* ===== 地図 ===== */
     #map { position: fixed; top: 52px; bottom: 0; left: 0; right: 0; }
 
-    /* ===== サイドパネル ===== */
+    /* ===== パネル ===== */
     #panel {
-      position: fixed; top: 62px; left: 12px; z-index: 100;
-      background: rgba(255,255,255,0.96);
-      border-radius: 16px;
-      padding: 14px 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      width: 220px;
-      backdrop-filter: blur(8px);
+      position: fixed; top: 52px; left: 0; bottom: 0; z-index: 200;
+      width: var(--panel-w);
+      background: #fff;
+      box-shadow: 2px 0 16px rgba(0,0,0,.1);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      transition: transform .3s ease;
     }
+    #panel.hidden { transform: translateX(-100%); }
 
-    .panel-section { margin-bottom: 14px; }
-    .panel-section:last-child { margin-bottom: 0; }
+    .panel-scroll { overflow-y: auto; flex: 1; padding: 14px; }
+    .panel-scroll::-webkit-scrollbar { width: 4px; }
+    .panel-scroll::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
 
-    .panel-label {
-      font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
-      color: #888; text-transform: uppercase; margin-bottom: 8px;
-    }
+    .ps { margin-bottom: 16px; }
+    .ps:last-child { margin-bottom: 0; }
+    .pl { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: #999; text-transform: uppercase; margin-bottom: 7px; }
 
     /* 日付 */
-    #date-display {
-      font-size: 14px; font-weight: 700; color: var(--black);
-      margin-bottom: 6px;
-    }
-    #date-slider {
-      width: 100%; accent-color: var(--red); cursor: pointer;
-    }
-    .date-range {
-      display: flex; justify-content: space-between;
-      font-size: 10px; color: #aaa; margin-top: 2px;
-    }
+    #date-display { font-size: 13px; font-weight: 700; color: var(--black); margin-bottom: 6px; }
+    #date-slider { width: 100%; accent-color: var(--red); cursor: pointer; }
+    .date-range { display: flex; justify-content: space-between; font-size: 10px; color: #bbb; margin-top: 2px; }
 
-    /* 花粉種類 */
-    .pollen-tabs {
-      display: flex; gap: 4px; flex-wrap: wrap;
-    }
+    /* 花粉タブ */
+    .pollen-tabs { display: flex; gap: 4px; }
     .pollen-tab {
-      flex: 1; min-width: 56px;
-      background: var(--bg); border: 2px solid transparent;
-      border-radius: 8px; padding: 5px 4px;
-      font-size: 11px; font-weight: 700; cursor: pointer;
-      text-align: center; color: #555;
-      transition: all 0.15s;
+      flex: 1; background: var(--bg); border: 2px solid transparent;
+      border-radius: 8px; padding: 6px 4px; font-size: 11px; font-weight: 700;
+      cursor: pointer; text-align: center; color: #666; transition: all .15s;
     }
-    .pollen-tab.active {
-      background: #fff0f0; border-color: var(--red); color: var(--red);
-    }
+    .pollen-tab.active { background: #fff0f0; border-color: var(--red); color: var(--red); }
 
     /* 凡例 */
-    .legend-row {
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 5px; font-size: 12px; color: #333;
-    }
-    .legend-dot {
-      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
-    }
+    .leg { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; font-size: 11px; color: #444; }
+    .leg-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 
-    /* アラートバナー */
+    /* ===== おすすめ山パネル ===== */
+    .rec-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .rec-count {
+      font-size: 11px; background: var(--lv1); color: #fff;
+      padding: 2px 8px; border-radius: 20px; font-weight: 700;
+    }
+    .rec-list { display: flex; flex-direction: column; gap: 6px; }
+    .rec-item {
+      background: #f0faf3; border: 1.5px solid #c8ecd4; border-radius: 10px;
+      padding: 8px 10px; cursor: pointer; transition: all .15s;
+    }
+    .rec-item:hover { border-color: var(--lv1); background: #e3f6e9; }
+    .rec-item-name { font-size: 12px; font-weight: 700; color: #1a6e32; margin-bottom: 2px; }
+    .rec-item-val { font-size: 11px; color: #555; }
+    .rec-empty { font-size: 12px; color: #999; text-align: center; padding: 12px 0; }
+
+    /* ===== アラートバナー ===== */
     #alert-banner {
-      position: fixed; top: 62px; right: 12px; z-index: 100;
-      background: var(--red); color: #fff;
+      position: fixed; top: 62px; right: 12px; z-index: 250;
+      background: var(--lv4); color: #fff;
       border-radius: 12px; padding: 10px 14px;
       font-size: 12px; font-weight: 700; line-height: 1.5;
-      box-shadow: 0 4px 16px rgba(230,0,18,0.4);
-      max-width: 200px;
-      display: none;
+      box-shadow: 0 4px 16px rgba(208,2,27,.4);
+      max-width: 200px; display: none;
     }
-    #alert-banner .alert-title { font-size: 14px; margin-bottom: 2px; }
+    #alert-banner .at { font-size: 13px; margin-bottom: 2px; }
 
-    /* ポップアップ */
+    /* ===== 現在地ボタン ===== */
+    #locate-btn {
+      position: fixed; bottom: 88px; right: 12px; z-index: 200;
+      width: 42px; height: 42px; border-radius: 50%;
+      background: #fff; border: none; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+      font-size: 20px; display: flex; align-items: center; justify-content: center;
+      transition: transform .15s;
+    }
+    #locate-btn:hover { transform: scale(1.1); }
+
+    /* ===== ポップアップ ===== */
     .maplibregl-popup-content {
-      border-radius: 12px !important;
-      padding: 12px 16px !important;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
-      font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
-      min-width: 160px;
+      border-radius: 14px !important; padding: 14px 16px !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,.15) !important;
+      font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;
+      min-width: 180px; max-width: 250px;
     }
-    .popup-name { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: #111; }
-    .popup-level {
+    .pu-name { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 6px; }
+    .pu-badge {
       display: inline-block; font-size: 11px; font-weight: 700;
-      padding: 2px 10px; border-radius: 20px; margin-bottom: 8px;
-      color: #fff;
+      padding: 2px 10px; border-radius: 20px; color: #fff; margin-bottom: 9px;
     }
-    .popup-row { font-size: 12px; color: #555; display: flex; justify-content: space-between; }
-    .popup-row + .popup-row { margin-top: 3px; }
-    .popup-row strong { color: #111; }
-    .popup-note { font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4; }
+    .pu-rec {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 2px 10px; border-radius: 20px;
+      background: var(--lv1); color: #fff; margin-left: 4px; margin-bottom: 9px;
+    }
+    .pu-row { font-size: 12px; color: #666; display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .pu-row strong { color: #111; }
+    .pu-note { font-size: 11px; color: #777; margin-top: 8px; line-height: 1.5; border-top: 1px solid #f0f0f0; padding-top: 8px; }
 
-    /* 登山アイコン凡例 */
-    .map-legend-bottom {
-      position: fixed; bottom: 16px; left: 12px; z-index: 100;
-      background: rgba(255,255,255,0.92);
-      border-radius: 10px; padding: 8px 12px;
-      font-size: 11px; color: #555;
+    /* ===== 下凡例 ===== */
+    .map-foot {
+      position: fixed; bottom: 16px; right: 60px; z-index: 200;
+      background: rgba(255,255,255,.9); border-radius: 10px;
+      padding: 6px 12px; font-size: 11px; color: #666;
       backdrop-filter: blur(6px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
     }
 
-    @media (max-width: 600px) {
-      #panel { width: calc(100vw - 24px); top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; }
-      #alert-banner { display: none !important; }
-      .map-legend-bottom { display: none; }
+    /* ===== モバイル ===== */
+    @media (max-width: 640px) {
+      :root { --panel-w: 100vw; }
+      #panel { top: auto; bottom: 0; left: 0; right: 0; height: 52vh; width: 100%; border-radius: 20px 20px 0 0; }
+      #panel.hidden { transform: translateY(100%); }
+      #panel-toggle { display: flex; }
+      #alert-banner, .map-foot { display: none !important; }
+      #locate-btn { bottom: 20px; }
     }
   </style>
 </head>
 <body>
 
-<!-- ヘッダー -->
 <header>
-  <div class="h-logo">
-    <span class="icon">🌿</span>
-    花粉飛散マップ
+  <div class="h-logo">🌿 花粉飛散マップ</div>
+  <div class="h-right">
+    <div class="h-badge">登山者向け</div>
+    <button id="panel-toggle" onclick="togglePanel()">☰</button>
   </div>
-  <div class="h-badge">登山者向け</div>
 </header>
 
-<!-- アラートバナー -->
 <div id="alert-banner">
-  <div class="alert-title">⚠️ 花粉警報</div>
-  <div id="alert-text">本日は非常に多い地域があります</div>
+  <div class="at">⚠️ 花粉警報</div>
+  <div id="alert-text"></div>
 </div>
 
-<!-- 地図 -->
 <div id="map"></div>
 
 <!-- サイドパネル -->
 <div id="panel">
-  <!-- 日付 -->
-  <div class="panel-section">
-    <div class="panel-label">観測日</div>
-    <div id="date-display">2026年3月3日（火）</div>
-    <input type="range" id="date-slider" min="0" max="13" value="0">
-    <div class="date-range"><span>3/3</span><span>3/16</span></div>
-  </div>
+  <div class="panel-scroll">
 
-  <!-- 花粉種類 -->
-  <div class="panel-section">
-    <div class="panel-label">花粉の種類</div>
-    <div class="pollen-tabs">
-      <button class="pollen-tab active" data-type="cedar">スギ</button>
-      <button class="pollen-tab" data-type="cypress">ヒノキ</button>
-      <button class="pollen-tab" data-type="all">合計</button>
+    <!-- 日付 -->
+    <div class="ps">
+      <div class="pl">観測日</div>
+      <div id="date-display"></div>
+      <input type="range" id="date-slider" min="0" max="13" value="0">
+      <div class="date-range"><span>3/3</span><span>3/16</span></div>
     </div>
-  </div>
 
-  <!-- 凡例 -->
-  <div class="panel-section">
-    <div class="panel-label">飛散量の目安</div>
-    <div class="legend-row"><span class="legend-dot" style="background:var(--lv1)"></span>少ない（〜29個/m³）</div>
-    <div class="legend-row"><span class="legend-dot" style="background:var(--lv2)"></span>やや多い（30〜99）</div>
-    <div class="legend-row"><span class="legend-dot" style="background:var(--lv3)"></span>多い（100〜299）</div>
-    <div class="legend-row"><span class="legend-dot" style="background:var(--lv4)"></span>非常に多い（300〜）</div>
+    <!-- 花粉種類 -->
+    <div class="ps">
+      <div class="pl">花粉の種類</div>
+      <div class="pollen-tabs">
+        <button class="pollen-tab active" data-type="cedar">スギ</button>
+        <button class="pollen-tab" data-type="cypress">ヒノキ</button>
+        <button class="pollen-tab" data-type="all">合計</button>
+      </div>
+    </div>
+
+    <!-- おすすめの山 -->
+    <div class="ps">
+      <div class="rec-header">
+        <div class="pl" style="margin-bottom:0">✅ 今日快適に登れる山</div>
+        <div class="rec-count" id="rec-count">0座</div>
+      </div>
+      <div class="rec-list" id="rec-list"></div>
+    </div>
+
+    <!-- 凡例 -->
+    <div class="ps">
+      <div class="pl">飛散量の目安</div>
+      <div class="leg"><span class="leg-dot" style="background:var(--lv1)"></span>少ない（〜29個/m³）</div>
+      <div class="leg"><span class="leg-dot" style="background:var(--lv2)"></span>やや多い（30〜99）</div>
+      <div class="leg"><span class="leg-dot" style="background:var(--lv3)"></span>多い（100〜299）</div>
+      <div class="leg"><span class="leg-dot" style="background:var(--lv4)"></span>非常に多い（300〜）</div>
+    </div>
+
   </div>
 </div>
 
-<!-- 地図下凡例 -->
-<div class="map-legend-bottom">🏔 登山スポット &nbsp;|&nbsp; ● 花粉観測点</div>
+<!-- 現在地ボタン -->
+<button id="locate-btn" title="現在地">📍</button>
+
+<div class="map-foot">🏔 登山スポット &nbsp;|&nbsp; ● 観測点 &nbsp;|&nbsp; ✅ 快適に登れる山</div>
 
 <script>
-// ===== ダミーデータ =====
-// 各ポイント: [経度, 緯度, スギ値, ヒノキ値, 場所名, 種別('city'|'mountain')]
-const BASE_DATA = [
-  // 都市部
-  { lnglat: [139.691,  35.689], cedar: 950,  cypress: 320, name: "東京・新宿",    type: "city",     note: "都心部は特に飛散量が多い時期です" },
-  { lnglat: [139.649,  35.628], cedar: 880,  cypress: 290, name: "東京・渋谷",    type: "city",     note: "外出時はマスク着用を推奨します" },
-  { lnglat: [139.769,  35.682], cedar: 820,  cypress: 260, name: "東京・墨田",    type: "city",     note: "" },
-  { lnglat: [135.502,  34.694], cedar: 780,  cypress: 410, name: "大阪・梅田",    type: "city",     note: "大阪はヒノキの飛散も目立ちます" },
-  { lnglat: [135.759,  34.985], cedar: 640,  cypress: 350, name: "京都市内",      type: "city",     note: "古都の緑が多くスギ飛散に注意" },
-  { lnglat: [136.906,  35.181], cedar: 710,  cypress: 280, name: "名古屋",        type: "city",     note: "" },
-  { lnglat: [130.401,  33.590], cedar: 520,  cypress: 190, name: "福岡・博多",    type: "city",     note: "北部九州は関東より飛散ピークが早め" },
-  { lnglat: [132.459,  34.396], cedar: 480,  cypress: 170, name: "広島",          type: "city",     note: "" },
-  { lnglat: [133.935,  34.663], cedar: 560,  cypress: 210, name: "岡山",          type: "city",     note: "" },
-  { lnglat: [138.383,  36.651], cedar: 380,  cypress:  90, name: "長野市",        type: "city",     note: "内陸部は比較的飛散量が少なめ" },
-  { lnglat: [140.863,  38.269], cedar: 290,  cypress:  60, name: "仙台",          type: "city",     note: "東北はシーズンが1〜2週間遅れます" },
-  { lnglat: [141.347,  43.063], cedar:  40,  cypress:   5, name: "札幌",          type: "city",     note: "北海道はスギがほとんどなく低め" },
+// =============================================
+// データ定義
+// =============================================
+const SPOTS = [
+  // ── 都市部 ──
+  { ll:[139.691,35.689], cedar:950,  cypress:320, name:"東京・新宿",   type:"city" },
+  { ll:[139.649,35.628], cedar:880,  cypress:290, name:"東京・渋谷",   type:"city" },
+  { ll:[139.769,35.682], cedar:820,  cypress:260, name:"東京・墨田",   type:"city" },
+  { ll:[135.502,34.694], cedar:780,  cypress:410, name:"大阪・梅田",   type:"city" },
+  { ll:[135.759,34.985], cedar:640,  cypress:350, name:"京都市内",     type:"city" },
+  { ll:[136.906,35.181], cedar:710,  cypress:280, name:"名古屋",       type:"city" },
+  { ll:[130.401,33.590], cedar:520,  cypress:190, name:"福岡・博多",   type:"city" },
+  { ll:[132.459,34.396], cedar:480,  cypress:170, name:"広島",         type:"city" },
+  { ll:[133.935,34.663], cedar:560,  cypress:210, name:"岡山",         type:"city" },
+  { ll:[138.383,36.651], cedar:380,  cypress: 90, name:"長野市",       type:"city" },
+  { ll:[140.863,38.269], cedar:290,  cypress: 60, name:"仙台",         type:"city" },
+  { ll:[141.347,43.063], cedar: 40,  cypress:  5, name:"札幌",         type:"city" },
+  { ll:[140.101,39.718], cedar:180,  cypress: 30, name:"秋田",         type:"city" },
+  { ll:[130.558,31.560], cedar:240,  cypress: 70, name:"鹿児島",       type:"city" },
+  { ll:[127.681,26.212], cedar: 10,  cypress:  3, name:"那覇",         type:"city" },
 
-  // 登山スポット
-  { lnglat: [138.727,  35.363], cedar: 420,  cypress: 130, name: "富士山麓（富士吉田）", type: "mountain", elevation: "〜2,500m", note: "山頂付近は花粉ゾーンを抜けて少なくなります" },
-  { lnglat: [139.153,  35.856], cedar: 580,  cypress: 160, name: "高尾山",              type: "mountain", elevation: "599m",    note: "スギ人工林が多く毎年飛散量が多い名所" },
-  { lnglat: [139.030,  35.761], cedar: 510,  cypress: 140, name: "奥多摩・御岳山",      type: "mountain", elevation: "929m",    note: "東京西部の奥多摩地区は飛散量に注意" },
-  { lnglat: [139.160,  35.452], cedar: 440,  cypress: 120, name: "丹沢・大山",          type: "mountain", elevation: "1,252m",  note: "神奈川県内でも有数の花粉スポット" },
-  { lnglat: [139.215,  35.500], cedar: 390,  cypress: 100, name: "箱根",               type: "mountain", elevation: "1,438m",  note: "標高が上がると飛散量は下がります" },
-  { lnglat: [137.647,  36.578], cedar: 260,  cypress:  50, name: "北アルプス（松本IC付近）", type: "mountain", elevation: "〜3,190m", note: "2,000m以上は花粉ゾーン外で快適です" },
-  { lnglat: [138.946,  36.406], cedar: 300,  cypress:  70, name: "榛名山",              type: "mountain", elevation: "1,449m",  note: "" },
-  { lnglat: [139.383,  36.800], cedar: 340,  cypress:  80, name: "日光・男体山",        type: "mountain", elevation: "2,486m",  note: "杉並木エリアは要注意。山頂付近は快適" },
-  { lnglat: [135.861,  34.562], cedar: 310,  cypress: 200, name: "大台ヶ原",           type: "mountain", elevation: "1,695m",  note: "紀伊半島のスギ・ヒノキ林。要注意" },
-  { lnglat: [131.665,  33.293], cedar: 280,  cypress:  90, name: "くじゅう連山",        type: "mountain", elevation: "1,787m",  note: "九州は花粉シーズンの開幕が早い" },
-  { lnglat: [130.527,  31.590], cedar: 240,  cypress:  70, name: "韓国岳（霧島）",      type: "mountain", elevation: "1,700m",  note: "" },
-  { lnglat: [136.769,  36.154], cedar: 190,  cypress:  40, name: "白山",               type: "mountain", elevation: "2,702m",  note: "高標高のため山頂付近は花粉なし" },
+  // ── 登山スポット ──
+  { ll:[138.727,35.363], cedar:420,  cypress:130, name:"富士山麓",            type:"mountain", elev:"〜3,776m", note:"2,000m以上はほぼ花粉ゾーン外。山頂は快適。" },
+  { ll:[139.153,35.856], cedar:580,  cypress:160, name:"高尾山",              type:"mountain", elev:"599m",    note:"スギ人工林が多く毎年飛散量が多い。マスク必須。" },
+  { ll:[139.030,35.761], cedar:510,  cypress:140, name:"奥多摩・御岳山",      type:"mountain", elev:"929m",    note:"東京西部エリア。飛散量に注意。" },
+  { ll:[139.160,35.452], cedar:440,  cypress:120, name:"丹沢・大山",          type:"mountain", elev:"1,252m",  note:"神奈川内でも有数の花粉スポット。" },
+  { ll:[139.215,35.500], cedar:320,  cypress: 80, name:"箱根・金時山",        type:"mountain", elev:"1,213m",  note:"標高が上がるほど飛散量が減少。" },
+  { ll:[137.647,36.578], cedar:200,  cypress: 40, name:"北アルプス（白馬）",  type:"mountain", elev:"〜3,190m", note:"2,000m超は花粉フリーゾーン。絶好の登山日和。" },
+  { ll:[138.362,36.099], cedar:160,  cypress: 30, name:"八ヶ岳",             type:"mountain", elev:"2,899m",  note:"高標高のため花粉は少なめ。晴天の日が多い。" },
+  { ll:[138.946,36.406], cedar:300,  cypress: 70, name:"榛名山",             type:"mountain", elev:"1,449m",  note:"群馬の山。中程度の飛散。" },
+  { ll:[139.383,36.800], cedar:340,  cypress: 80, name:"日光・男体山",        type:"mountain", elev:"2,486m",  note:"杉並木エリアは要注意。山頂付近は快適。" },
+  { ll:[139.280,36.955], cedar:260,  cypress: 55, name:"那須岳",             type:"mountain", elev:"1,915m",  note:"栃木北部。中程度。那須高原は比較的快適。" },
+  { ll:[140.024,36.396], cedar:380,  cypress: 90, name:"筑波山",             type:"mountain", elev:"877m",    note:"関東平野に近く飛散の影響を受けやすい。" },
+  { ll:[138.822,37.134], cedar:220,  cypress: 45, name:"谷川岳",             type:"mountain", elev:"1,977m",  note:"新潟・群馬県境。雪山シーズンは花粉少なめ。" },
+  { ll:[139.027,36.928], cedar:190,  cypress: 38, name:"尾瀬・至仏山",       type:"mountain", elev:"2,228m",  note:"湿原地帯のため花粉源が少なく快適。" },
+  { ll:[137.480,36.226], cedar:180,  cypress: 35, name:"北アルプス（乗鞍）", type:"mountain", elev:"3,026m",  note:"乗鞍スカイライン沿いは高標高で花粉ほぼなし。" },
+  { ll:[137.481,35.893], cedar:250,  cypress: 60, name:"御嶽山",             type:"mountain", elev:"3,067m",  note:"長野・岐阜県境。山頂付近は花粉フリー。" },
+  { ll:[136.769,36.154], cedar:190,  cypress: 40, name:"白山",               type:"mountain", elev:"2,702m",  note:"石川・岐阜。高標高のため山頂付近は快適。" },
+  { ll:[135.861,34.562], cedar:310,  cypress:200, name:"大台ヶ原",           type:"mountain", elev:"1,695m",  note:"紀伊半島のスギ・ヒノキ林。飛散多め。" },
+  { ll:[135.434,34.837], cedar:420,  cypress:260, name:"六甲山",             type:"mountain", elev:"931m",    note:"神戸の山。大阪湾からの風で飛散量増加しやすい。" },
+  { ll:[136.397,35.417], cedar:480,  cypress:220, name:"伊吹山",             type:"mountain", elev:"1,377m",  note:"滋賀・岐阜。スギ・ヒノキ多め。" },
+  { ll:[131.665,33.293], cedar:280,  cypress: 90, name:"くじゅう連山",        type:"mountain", elev:"1,787m",  note:"九州の盟主。ミヤマキリシマで有名。" },
+  { ll:[130.527,31.590], cedar:240,  cypress: 70, name:"韓国岳（霧島）",      type:"mountain", elev:"1,700m",  note:"鹿児島・宮崎。花粉シーズン開幕が早め。" },
+  { ll:[136.905,36.302], cedar:210,  cypress: 48, name:"立山・剱岳",          type:"mountain", elev:"3,003m",  note:"富山。高標高で花粉はほぼなし。残雪注意。" },
+  { ll:[138.210,36.716], cedar:170,  cypress: 32, name:"妙高山",             type:"mountain", elev:"2,454m",  note:"新潟。残雪が多く花粉シーズンでも快適。" },
 ];
 
-// 14日分のランダム変動係数（シード固定）
+// 日付・変動係数
+const BASE_DATE = new Date(2026, 2, 3);
 function seededRand(seed) {
   let s = seed;
   return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
 }
-const DAYS = 14;
-const dailyFactors = Array.from({ length: DAYS }, (_, i) => {
+const dailyFactors = Array.from({length:14}, (_,i) => {
   const r = seededRand(i * 7 + 42);
-  return 0.6 + r() * 0.8; // 0.6〜1.4
+  return 0.55 + r() * 0.9;
 });
 
-// 現在の花粉タイプと日付インデックス
 let currentType = "cedar";
 let currentDay  = 0;
 
-// ===== レベル判定 =====
-function getLevel(val) {
-  if (val < 30)  return 1;
-  if (val < 100) return 2;
-  if (val < 300) return 3;
-  return 4;
-}
-const LEVEL_COLOR = { 1: "#4CAF50", 2: "#FFC107", 3: "#FF9800", 4: "#F44336" };
-const LEVEL_LABEL = { 1: "少ない", 2: "やや多い", 3: "多い", 4: "非常に多い" };
-
 function getValue(d) {
-  const raw = currentType === "cedar"   ? d.cedar
-             : currentType === "cypress" ? d.cypress
-             : d.cedar + d.cypress;
+  const raw = currentType==="cedar" ? d.cedar : currentType==="cypress" ? d.cypress : d.cedar+d.cypress;
   return Math.round(raw * dailyFactors[currentDay]);
 }
+function getLevel(v) { return v<30?1:v<100?2:v<300?3:4; }
 
-// ===== GeoJSON 生成 =====
+const LV_COLOR = {1:"#2e9e4f",2:"#f5a623",3:"#e8650a",4:"#d0021b"};
+const LV_LABEL = {1:"少ない",2:"やや多い",3:"多い",4:"非常に多い"};
+
 function buildGeoJSON() {
   return {
-    type: "FeatureCollection",
-    features: BASE_DATA.map(d => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: d.lnglat },
-      properties: {
-        ...d,
+    type:"FeatureCollection",
+    features: SPOTS.map(d => ({
+      type:"Feature",
+      geometry:{type:"Point",coordinates:d.ll},
+      properties:{
+        ...d, ll:undefined,
         value: getValue(d),
         level: getLevel(getValue(d)),
       }
@@ -288,179 +313,204 @@ function buildGeoJSON() {
   };
 }
 
-// ===== 日付ラベル =====
-const BASE_DATE = new Date(2026, 2, 3); // 2026-03-03
-function getDateLabel(idx) {
-  const d = new Date(BASE_DATE);
-  d.setDate(d.getDate() + idx);
-  const week = ["日","月","火","水","木","金","土"][d.getDay()];
-  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${week}）`;
+// 日付ラベル
+function getDateLabel(i) {
+  const d = new Date(BASE_DATE); d.setDate(d.getDate()+i);
+  const w = ["日","月","火","水","木","金","土"][d.getDay()];
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${w}）`;
 }
 
-// ===== 地図初期化 =====
-const map = new maplibregl.Map({
-  container: "map",
-  style: "https://tiles.openfreemap.org/styles/liberty",
-  center: [137.5, 36.0],
-  zoom: 5.5,
-  minZoom: 4,
-  maxZoom: 14,
-  attributionControl: false,
-});
+// =============================================
+// おすすめ山リスト更新
+// =============================================
+function updateRecList() {
+  const recs = SPOTS
+    .filter(d => d.type==="mountain" && getLevel(getValue(d)) <= 2)
+    .sort((a,b) => getValue(a)-getValue(b));
 
-map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
-map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+  document.getElementById("rec-count").textContent = `${recs.length}座`;
+  const list = document.getElementById("rec-list");
+
+  if (recs.length === 0) {
+    list.innerHTML = `<div class="rec-empty">本日は快適な山が少ない日です 😢</div>`;
+    return;
+  }
+  list.innerHTML = recs.map(d => {
+    const v = getValue(d);
+    const lv = getLevel(v);
+    return `
+      <div class="rec-item" onclick="flyTo(${d.ll[0]},${d.ll[1]})">
+        <div class="rec-item-name">✅ ${d.name}</div>
+        <div class="rec-item-val">${LV_LABEL[lv]}・${v} 個/m³${d.elev ? `・${d.elev}` : ""}</div>
+      </div>`;
+  }).join("");
+}
+
+// =============================================
+// 地図
+// =============================================
+const map = new maplibregl.Map({
+  container:"map",
+  style:"https://tiles.openfreemap.org/styles/liberty",
+  center:[137.5,36.2],
+  zoom:5.5, minZoom:4, maxZoom:14,
+  attributionControl:false,
+});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}), "bottom-right");
+map.addControl(new maplibregl.AttributionControl({compact:true}), "bottom-right");
+
+function flyTo(lng,lat) {
+  map.flyTo({center:[lng,lat], zoom:9, speed:1.4});
+}
 
 map.on("load", () => {
-  // ヒートマップ用ソース
-  map.addSource("pollen-heat", { type: "geojson", data: buildGeoJSON() });
-  // ポイント用ソース
-  map.addSource("pollen-points", { type: "geojson", data: buildGeoJSON() });
+  map.addSource("pollen-h",  {type:"geojson", data:buildGeoJSON()});
+  map.addSource("pollen-p",  {type:"geojson", data:buildGeoJSON()});
 
-  // ── ヒートマップレイヤー ──
+  // ヒートマップ
   map.addLayer({
-    id: "pollen-heatmap",
-    type: "heatmap",
-    source: "pollen-heat",
-    maxzoom: 10,
-    paint: {
-      "heatmap-weight": ["interpolate", ["linear"], ["get", "value"],
-        0, 0, 50, 0.3, 200, 0.7, 500, 1, 1000, 2],
-      "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 9, 3],
-      "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 30, 8, 80],
-      "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"],
-        0,   "rgba(76,175,80,0)",
-        0.2, "rgba(76,175,80,0.6)",
-        0.4, "rgba(255,193,7,0.7)",
-        0.6, "rgba(255,152,0,0.8)",
-        0.8, "rgba(244,67,54,0.85)",
-        1.0, "rgba(183,28,28,0.95)"],
-      "heatmap-opacity": 0.75,
+    id:"heatmap", type:"heatmap", source:"pollen-h", maxzoom:10,
+    paint:{
+      "heatmap-weight":["interpolate",["linear"],["get","value"],0,0,50,.3,200,.7,500,1,1000,2],
+      "heatmap-intensity":["interpolate",["linear"],["zoom"],0,1,9,3],
+      "heatmap-radius":["interpolate",["linear"],["zoom"],3,28,8,72],
+      "heatmap-color":["interpolate",["linear"],["heatmap-density"],
+        0,   "rgba(46,158,79,0)",
+        0.2, "rgba(46,158,79,.55)",
+        0.4, "rgba(245,166,35,.65)",
+        0.6, "rgba(232,101,10,.75)",
+        0.8, "rgba(208,2,27,.85)",
+        1.0, "rgba(140,0,12,.95)"],
+      "heatmap-opacity":.72,
     }
   });
 
-  // ── 観測ポイント ── (ズーム5以上で表示)
+  // 観測円
   map.addLayer({
-    id: "pollen-circles",
-    type: "circle",
-    source: "pollen-points",
-    minzoom: 5,
-    paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 6, 10, 14],
-      "circle-color": ["match", ["get", "level"],
-        1, "#4CAF50", 2, "#FFC107", 3, "#FF9800", 4, "#F44336", "#999"],
-      "circle-stroke-width": 2,
-      "circle-stroke-color": "#fff",
-      "circle-opacity": 0.92,
+    id:"circles", type:"circle", source:"pollen-p", minzoom:4,
+    paint:{
+      "circle-radius":["interpolate",["linear"],["zoom"],4,5,10,13],
+      "circle-color":["match",["get","level"],1,"#2e9e4f",2,"#f5a623",3,"#e8650a",4,"#d0021b","#999"],
+      "circle-stroke-width":2,
+      "circle-stroke-color":"#fff",
+      "circle-opacity":.9,
     }
   });
 
-  // ── 登山スポットアイコン ──
+  // 快適登山マーク（緑の外枠）
   map.addLayer({
-    id: "mountain-icon",
-    type: "symbol",
-    source: "pollen-points",
-    minzoom: 6,
-    filter: ["==", ["get", "type"], "mountain"],
-    layout: {
-      "text-field": "🏔",
-      "text-size": 18,
-      "text-offset": [0, -1.6],
-      "text-allow-overlap": true,
+    id:"rec-ring", type:"circle", source:"pollen-p", minzoom:5,
+    filter:["all",["==",["get","type"],"mountain"],["<=",["get","level"],2]],
+    paint:{
+      "circle-radius":["interpolate",["linear"],["zoom"],5,10,10,18],
+      "circle-color":"rgba(0,0,0,0)",
+      "circle-stroke-width":3,
+      "circle-stroke-color":"#2e9e4f",
+      "circle-opacity":0,
+      "circle-stroke-opacity":.8,
     }
   });
 
-  // ── ラベル ──
+  // 登山アイコン
   map.addLayer({
-    id: "pollen-labels",
-    type: "symbol",
-    source: "pollen-points",
-    minzoom: 7,
-    layout: {
-      "text-field": ["get", "name"],
-      "text-font": ["Noto Sans Regular"],
-      "text-size": 11,
-      "text-offset": [0, 1.4],
-      "text-anchor": "top",
-      "text-allow-overlap": false,
+    id:"mtn-icon", type:"symbol", source:"pollen-p", minzoom:6,
+    filter:["==",["get","type"],"mountain"],
+    layout:{"text-field":"🏔","text-size":16,"text-offset":[0,-1.6],"text-allow-overlap":true}
+  });
+
+  // ラベル
+  map.addLayer({
+    id:"labels", type:"symbol", source:"pollen-p", minzoom:7,
+    layout:{
+      "text-field":["get","name"],
+      "text-font":["Noto Sans Regular"],
+      "text-size":11,
+      "text-offset":[0,1.5],
+      "text-anchor":"top",
+      "text-allow-overlap":false,
     },
-    paint: {
-      "text-color": "#222",
-      "text-halo-color": "#fff",
-      "text-halo-width": 1.5,
-    }
+    paint:{"text-color":"#222","text-halo-color":"#fff","text-halo-width":1.5}
   });
 
   // ポップアップ
-  const popup = new maplibregl.Popup({ offset: 12, closeButton: true, maxWidth: "240px" });
+  const popup = new maplibregl.Popup({offset:12, closeButton:true, maxWidth:"260px"});
 
-  map.on("click", "pollen-circles", e => {
-    const p = e.features[0].properties;
-    const val = p.value;
-    const lv  = p.level;
-    const typeLabel = currentType === "cedar" ? "スギ" : currentType === "cypress" ? "ヒノキ" : "合計";
+  map.on("click","circles", e => {
+    const p  = e.features[0].properties;
+    const v  = p.value;
+    const lv = p.level;
+    const tl = currentType==="cedar"?"スギ":currentType==="cypress"?"ヒノキ":"合計";
+    const isRec = p.type==="mountain" && lv<=2;
 
-    let html = `
-      <div class="popup-name">${p.type === "mountain" ? "🏔 " : "🏙 "}${p.name}</div>
-      <span class="popup-level" style="background:${LEVEL_COLOR[lv]}">${LEVEL_LABEL[lv]}</span>
-      <div class="popup-row"><span>${typeLabel}花粉</span><strong>${val.toLocaleString()} 個/m³</strong></div>`;
-    if (p.elevation) {
-      html += `<div class="popup-row"><span>標高目安</span><strong>${p.elevation}</strong></div>`;
-    }
-    if (p.note) {
-      html += `<div class="popup-note">💡 ${p.note}</div>`;
-    }
+    let html = `<div class="pu-name">${p.type==="mountain"?"🏔 ":"🏙 "}${p.name}</div>
+      <span class="pu-badge" style="background:${LV_COLOR[lv]}">${LV_LABEL[lv]}</span>
+      ${isRec ? `<span class="pu-rec">✅ 快適に登れます</span>` : ""}
+      <div class="pu-row"><span>${tl}花粉</span><strong>${v.toLocaleString()} 個/m³</strong></div>`;
+    if (p.elev)  html += `<div class="pu-row"><span>標高目安</span><strong>${p.elev}</strong></div>`;
+    if (p.note)  html += `<div class="pu-note">💡 ${p.note}</div>`;
 
-    popup.setLngLat(e.features[0].geometry.coordinates)
-         .setHTML(html)
-         .addTo(map);
+    popup.setLngLat(e.features[0].geometry.coordinates).setHTML(html).addTo(map);
   });
 
-  map.on("mouseenter", "pollen-circles", () => { map.getCanvas().style.cursor = "pointer"; });
-  map.on("mouseleave", "pollen-circles", () => { map.getCanvas().style.cursor = ""; });
+  map.on("mouseenter","circles",()=>{ map.getCanvas().style.cursor="pointer"; });
+  map.on("mouseleave","circles",()=>{ map.getCanvas().style.cursor=""; });
 
+  // 初期描画
+  document.getElementById("date-display").textContent = getDateLabel(0);
+  updateRecList();
   updateAlert();
 });
 
-// ===== データ更新 =====
-function updateMap() {
+// =============================================
+// 更新
+// =============================================
+function updateAll() {
   const gj = buildGeoJSON();
-  if (map.getSource("pollen-heat")) {
-    map.getSource("pollen-heat").setData(gj);
-    map.getSource("pollen-points").setData(gj);
-  }
+  if (!map.getSource("pollen-h")) return;
+  map.getSource("pollen-h").setData(gj);
+  map.getSource("pollen-p").setData(gj);
+  // rec-ring フィルター再適用
+  map.setFilter("rec-ring",["all",["==",["get","type"],"mountain"],["<=",["get","level"],2]]);
+  updateRecList();
   updateAlert();
 }
 
 function updateAlert() {
-  const maxVal = Math.max(...BASE_DATA.map(d => getValue(d)));
-  const banner = document.getElementById("alert-banner");
-  if (maxVal >= 300) {
-    document.getElementById("alert-text").textContent =
-      `最大 ${maxVal.toLocaleString()} 個/m³\n本日は外出時の対策を！`;
-    banner.style.display = "block";
-  } else {
-    banner.style.display = "none";
-  }
+  const maxV = Math.max(...SPOTS.map(getValue));
+  const b = document.getElementById("alert-banner");
+  if (maxV >= 300) {
+    document.getElementById("alert-text").textContent = `最大 ${maxV.toLocaleString()} 個/m³\n本日は対策を！`;
+    b.style.display = "block";
+  } else { b.style.display = "none"; }
 }
 
-// ===== コントロール =====
-// 日付スライダー
+// コントロール
 document.getElementById("date-slider").addEventListener("input", e => {
   currentDay = parseInt(e.target.value);
   document.getElementById("date-display").textContent = getDateLabel(currentDay);
-  updateMap();
+  updateAll();
 });
 
-// 花粉タイプタブ
 document.querySelectorAll(".pollen-tab").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".pollen-tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".pollen-tab").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     currentType = btn.dataset.type;
-    updateMap();
+    updateAll();
   });
 });
+
+// 現在地
+document.getElementById("locate-btn").addEventListener("click", () => {
+  navigator.geolocation.getCurrentPosition(pos => {
+    map.flyTo({center:[pos.coords.longitude, pos.coords.latitude], zoom:10, speed:1.4});
+  }, () => alert("現在地を取得できませんでした"));
+});
+
+// パネルトグル（モバイル）
+function togglePanel() {
+  document.getElementById("panel").classList.toggle("hidden");
+}
 </script>
 </body>
 </html>
