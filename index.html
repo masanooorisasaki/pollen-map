@@ -250,29 +250,40 @@ const SPOTS = [
   { ll:[127.681,26.212], cedar: 10,  cypress:  3, name:"那覇",         type:"city" },
 
   // ── 登山スポット ──
-  { ll:[138.727,35.363], cedar:420,  cypress:130, name:"富士山麓",            type:"mountain", elev:"〜3,776m", note:"2,000m以上はほぼ花粉ゾーン外。山頂は快適。" },
-  { ll:[139.153,35.856], cedar:580,  cypress:160, name:"高尾山",              type:"mountain", elev:"599m",    note:"スギ人工林が多く毎年飛散量が多い。マスク必須。" },
+  // 標高別の花粉値:
+  //   2,000m超 → スギ林なし・風送花粉のみ → cedar 5〜20
+  //   1,500〜2,000m → 少量 → cedar 25〜60
+  //   1,000〜1,500m → 中程度 → cedar 100〜300
+  //   〜1,000m     → 多い  → cedar 300〜600
+
+  // ── 2,000m超（ほぼ花粉フリー）──
+  { ll:[138.727,35.363], cedar: 12,  cypress:  4, name:"富士山",              type:"mountain", elev:"3,776m",  note:"2,000m以上はスギなし。山頂付近は快適。" },
+  { ll:[137.647,36.578], cedar:  8,  cypress:  3, name:"北アルプス（白馬）",  type:"mountain", elev:"〜3,190m", note:"スギ林の上限を超えるため花粉フリー。快適な登山日和。" },
+  { ll:[138.362,36.099], cedar: 10,  cypress:  3, name:"八ヶ岳",             type:"mountain", elev:"2,899m",  note:"標高2,000m超のため花粉はほぼゼロ。快適に登れます。" },
+  { ll:[137.480,36.226], cedar:  6,  cypress:  2, name:"北アルプス（乗鞍）", type:"mountain", elev:"3,026m",  note:"乗鞍岳は3,000m超。花粉フリーゾーン。" },
+  { ll:[137.481,35.893], cedar:  8,  cypress:  2, name:"御嶽山",             type:"mountain", elev:"3,067m",  note:"高標高のため花粉はほぼなし。快適に登れます。" },
+  { ll:[136.769,36.154], cedar:  8,  cypress:  2, name:"白山",               type:"mountain", elev:"2,702m",  note:"石川・岐阜。スギ上限を超え快適。" },
+  { ll:[136.905,36.302], cedar:  6,  cypress:  2, name:"立山・剱岳",          type:"mountain", elev:"3,003m",  note:"富山。3,000m超で花粉はほぼゼロ。残雪注意。" },
+  { ll:[138.210,36.716], cedar: 18,  cypress:  4, name:"妙高山",             type:"mountain", elev:"2,454m",  note:"新潟。残雪多く高標高。花粉飛来は最小限。" },
+  { ll:[139.027,36.928], cedar: 10,  cypress:  3, name:"尾瀬・至仏山",       type:"mountain", elev:"2,228m",  note:"湿原地帯でスギなし。花粉が非常に少なく快適。" },
+  { ll:[139.383,36.800], cedar: 22,  cypress:  6, name:"日光・男体山",        type:"mountain", elev:"2,486m",  note:"山頂付近は快適。杉並木エリアは飛散注意。" },
+
+  // ── 1,500〜2,000m（少なめ）──
+  { ll:[139.280,36.955], cedar: 45,  cypress: 12, name:"那須岳",             type:"mountain", elev:"1,915m",  note:"栃木北部。高原エリアは比較的快適。" },
+  { ll:[138.822,37.134], cedar: 28,  cypress:  8, name:"谷川岳",             type:"mountain", elev:"1,977m",  note:"新潟・群馬県境。花粉は少なめ。" },
+  { ll:[131.665,33.293], cedar: 38,  cypress: 14, name:"くじゅう連山",        type:"mountain", elev:"1,787m",  note:"九州の盟主。ミヤマキリシマで有名。" },
+  { ll:[130.527,31.590], cedar: 32,  cypress: 10, name:"韓国岳（霧島）",      type:"mountain", elev:"1,700m",  note:"鹿児島・宮崎。山頂付近は比較的快適。" },
+  { ll:[135.861,34.562], cedar:180,  cypress:120, name:"大台ヶ原",           type:"mountain", elev:"1,695m",  note:"紀伊半島のスギ・ヒノキ林帯。飛散多め。" },
+  { ll:[138.946,36.406], cedar:120,  cypress: 35, name:"榛名山",             type:"mountain", elev:"1,449m",  note:"群馬の山。中程度の飛散。" },
+  { ll:[136.397,35.417], cedar:260,  cypress:120, name:"伊吹山",             type:"mountain", elev:"1,377m",  note:"滋賀・岐阜。植林帯が広く飛散多め。" },
+  { ll:[139.160,35.452], cedar:360,  cypress:100, name:"丹沢・大山",          type:"mountain", elev:"1,252m",  note:"神奈川内でも有数の花粉スポット。" },
+  { ll:[139.215,35.500], cedar:220,  cypress: 60, name:"箱根・金時山",        type:"mountain", elev:"1,213m",  note:"標高が上がるほど飛散量が減少。" },
+
+  // ── 〜1,000m（多め）──
+  { ll:[139.153,35.856], cedar:580,  cypress:160, name:"高尾山",              type:"mountain", elev:"599m",    note:"スギ人工林が多く毎年飛散量トップクラス。マスク必須。" },
   { ll:[139.030,35.761], cedar:510,  cypress:140, name:"奥多摩・御岳山",      type:"mountain", elev:"929m",    note:"東京西部エリア。飛散量に注意。" },
-  { ll:[139.160,35.452], cedar:440,  cypress:120, name:"丹沢・大山",          type:"mountain", elev:"1,252m",  note:"神奈川内でも有数の花粉スポット。" },
-  { ll:[139.215,35.500], cedar:320,  cypress: 80, name:"箱根・金時山",        type:"mountain", elev:"1,213m",  note:"標高が上がるほど飛散量が減少。" },
-  { ll:[137.647,36.578], cedar:200,  cypress: 40, name:"北アルプス（白馬）",  type:"mountain", elev:"〜3,190m", note:"2,000m超は花粉フリーゾーン。絶好の登山日和。" },
-  { ll:[138.362,36.099], cedar:160,  cypress: 30, name:"八ヶ岳",             type:"mountain", elev:"2,899m",  note:"高標高のため花粉は少なめ。晴天の日が多い。" },
-  { ll:[138.946,36.406], cedar:300,  cypress: 70, name:"榛名山",             type:"mountain", elev:"1,449m",  note:"群馬の山。中程度の飛散。" },
-  { ll:[139.383,36.800], cedar:340,  cypress: 80, name:"日光・男体山",        type:"mountain", elev:"2,486m",  note:"杉並木エリアは要注意。山頂付近は快適。" },
-  { ll:[139.280,36.955], cedar:260,  cypress: 55, name:"那須岳",             type:"mountain", elev:"1,915m",  note:"栃木北部。中程度。那須高原は比較的快適。" },
-  { ll:[140.024,36.396], cedar:380,  cypress: 90, name:"筑波山",             type:"mountain", elev:"877m",    note:"関東平野に近く飛散の影響を受けやすい。" },
-  { ll:[138.822,37.134], cedar:220,  cypress: 45, name:"谷川岳",             type:"mountain", elev:"1,977m",  note:"新潟・群馬県境。雪山シーズンは花粉少なめ。" },
-  { ll:[139.027,36.928], cedar:190,  cypress: 38, name:"尾瀬・至仏山",       type:"mountain", elev:"2,228m",  note:"湿原地帯のため花粉源が少なく快適。" },
-  { ll:[137.480,36.226], cedar:180,  cypress: 35, name:"北アルプス（乗鞍）", type:"mountain", elev:"3,026m",  note:"乗鞍スカイライン沿いは高標高で花粉ほぼなし。" },
-  { ll:[137.481,35.893], cedar:250,  cypress: 60, name:"御嶽山",             type:"mountain", elev:"3,067m",  note:"長野・岐阜県境。山頂付近は花粉フリー。" },
-  { ll:[136.769,36.154], cedar:190,  cypress: 40, name:"白山",               type:"mountain", elev:"2,702m",  note:"石川・岐阜。高標高のため山頂付近は快適。" },
-  { ll:[135.861,34.562], cedar:310,  cypress:200, name:"大台ヶ原",           type:"mountain", elev:"1,695m",  note:"紀伊半島のスギ・ヒノキ林。飛散多め。" },
   { ll:[135.434,34.837], cedar:420,  cypress:260, name:"六甲山",             type:"mountain", elev:"931m",    note:"神戸の山。大阪湾からの風で飛散量増加しやすい。" },
-  { ll:[136.397,35.417], cedar:480,  cypress:220, name:"伊吹山",             type:"mountain", elev:"1,377m",  note:"滋賀・岐阜。スギ・ヒノキ多め。" },
-  { ll:[131.665,33.293], cedar:280,  cypress: 90, name:"くじゅう連山",        type:"mountain", elev:"1,787m",  note:"九州の盟主。ミヤマキリシマで有名。" },
-  { ll:[130.527,31.590], cedar:240,  cypress: 70, name:"韓国岳（霧島）",      type:"mountain", elev:"1,700m",  note:"鹿児島・宮崎。花粉シーズン開幕が早め。" },
-  { ll:[136.905,36.302], cedar:210,  cypress: 48, name:"立山・剱岳",          type:"mountain", elev:"3,003m",  note:"富山。高標高で花粉はほぼなし。残雪注意。" },
-  { ll:[138.210,36.716], cedar:170,  cypress: 32, name:"妙高山",             type:"mountain", elev:"2,454m",  note:"新潟。残雪が多く花粉シーズンでも快適。" },
+  { ll:[140.024,36.396], cedar:380,  cypress: 90, name:"筑波山",             type:"mountain", elev:"877m",    note:"関東平野に近く飛散の影響を受けやすい。" },
 ];
 
 // 日付・変動係数
